@@ -2,7 +2,7 @@ import fastq, { queueAsPromised } from "fastq"
 import { worker } from './worker'
 
 export type QueueTask = {
-  videoId: string;
+  originalId: string;
   url: string;
 }
 

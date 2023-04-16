@@ -1,17 +1,18 @@
 require("dotenv/config");
 
 import chalk from "chalk";
-import { queue } from "./lib/queue";
+import path from "path";
+import { writeFile } from "fs/promises";
 
+import { queue } from "./lib/queue";
+import { Ids } from "./lib/types";
 import videosFile from "../data/videos.json";
 import uploadedFile from "../data/uploaded.json";
 import erroredFile from "../data/errored.json";
-import { writeFile } from "fs/promises";
-import path from "path";
 
-const uploaded = uploadedFile as { muxId: string; bunnyId: string }[];
-const errored = erroredFile as { muxId: string; bunnyId: string }[];
-const videos = videosFile as string[];
+const uploaded = uploadedFile as Ids[];
+const errored = erroredFile as Ids[];
+const videos = videosFile as { [key: string]: string };
 
 async function logEverything() {
   await writeFile(
@@ -30,35 +31,27 @@ async function logEverything() {
 }
 
 async function populateQueue() {
-  videos.forEach(async (id) => {
+  Object.entries(videos).forEach(async ([originalId, url]) => {
     queue
-      .push({
-        videoId: id,
-        url: `https://stream.mux.com/${id}/high.mp4?download=live-high`,
-      })
-      .then(async ({ uploadId, videoId }) => {
-        uploaded.push({
-          muxId: videoId,
-          bunnyId: uploadId,
-        });
-
-        videos.splice(videos.indexOf(id), 1);
+      .push({ originalId, url })
+      .then(async ({ originalId, bunnyId }: Ids) => {
+        uploaded.push({ originalId, bunnyId });
+        delete videos[originalId];
 
         await logEverything();
 
-        console.log(chalk.green(`Uploaded: ${id} (Upload ID: ${uploadId})`));
+        console.log(
+          chalk.green(`Uploaded: ${originalId} (Upload ID: ${bunnyId})`)
+        );
       })
-      .catch(async ({ uploadId, videoId }) => {
-        errored.push({
-          muxId: videoId,
-          bunnyId: uploadId,
-        });
+      .catch(async ({ originalId, bunnyId }: Ids) => {
+        errored.push({ originalId, bunnyId });
 
         await logEverything();
 
-        console.log(chalk.red(`Error on video: ${id}`), {
-          muxId: videoId,
-          bunnyId: uploadId,
+        console.log(chalk.red(`Error on video: ${originalId}`), {
+          originalId,
+          bunnyId,
         });
       });
   });

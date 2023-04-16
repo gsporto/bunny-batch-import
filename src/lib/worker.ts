@@ -1,5 +1,6 @@
 import request from "request";
 import { QueueTask } from "./queue";
+import { Ids } from "./types";
 
 const options = {
   method: "POST",
@@ -10,34 +11,34 @@ const options = {
   },
 };
 
-export async function worker({ videoId, url }: QueueTask) {
+export async function worker({ originalId, url }: QueueTask) {
   const upload = await fetch(
     `https://video.bunnycdn.com/library/${process.env.BUNNY_LIBRARY_ID}/videos`,
     {
       ...options,
       body: JSON.stringify({
-        title: `imported-${videoId}`,
+        title: `imported-${originalId}`,
       }),
     }
   ).then((res) => res.json());
 
-  const uploadId = upload.guid;
+  const bunnyId = upload.guid;
 
-  return await new Promise<{ uploadId: string; videoId: string }>(
+  return await new Promise<Ids>(
     (resolve, reject) => {
       request(url)
         .on("complete", (resp) => {
           if (resp.toJSON().statusCode !== 200) {
-            reject({ uploadId, videoId });
+            reject({ originalId, bunnyId });
           }
-          resolve({ uploadId, videoId });
+          resolve({ originalId, bunnyId });
         })
         .on("error", (err) => {
-          reject({ uploadId, videoId });
+          reject({ originalId, bunnyId });
         })
         .pipe(
           request.put(
-            `https://video.bunnycdn.com/library/${process.env.BUNNY_LIBRARY_ID}/videos/${uploadId}`,
+            `https://video.bunnycdn.com/library/${process.env.BUNNY_LIBRARY_ID}/videos/${bunnyId}`,
             {
               headers: {
                 AccessKey: process.env.BUNNY_ACCESS_KEY ?? "",

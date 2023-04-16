@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import erroredFile from "../data/errored.json";
+import { Ids } from "./lib/types";
 
 /**
  * This is a simple script to delete all the errored videos from BunnyCDN
@@ -8,7 +9,7 @@ import erroredFile from "../data/errored.json";
  */
 
 async function deleteErrored() {
-  for (const errored of erroredFile as { bunnyId: string }[]) {
+  for (const errored of erroredFile as Ids[]) {
     const url = `https://video.bunnycdn.com/library/${process.env.BUNNY_LIBRARY_ID}/videos/${errored.bunnyId}`;
     const options = {
       method: "DELETE",
